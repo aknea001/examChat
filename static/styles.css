@@ -6,9 +6,27 @@
     vertical-align: baseline;
 }
 
+body {
+    display: flex;
+    justify-content: center;
+}
+
+#chatHistory {
+    flex: 95;
+    /* height: 95%;
+    max-height: 95%; */
+    width: 95%;
+    margin-top: 10px;
+    overflow: scroll;
+    /* border: 1px solid red; */
+}
+
 #messageDiv {
+    flex: 5;
     position: fixed;
     bottom: 0;
+    /* height: 5%; */
+    min-height: 45px;
     width: 100%;
     display: flex;
     justify-content: center;
@@ -27,6 +45,8 @@
 }
 
 #sendMessage {
+    height: 33px;
+    border-radius: 5px;
     margin-left: 2px;
     flex: 5;
 }

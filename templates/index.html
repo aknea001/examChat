@@ -6,8 +6,10 @@
     <link rel="stylesheet" href="static/styles.css">
     <title>Document</title>
 </head>
-<body>
-    <div></div>
+<body onload="establishConnection()">
+    <div id="chatHistory">
+        <ul id="chats"></ul>
+    </div>
     <div id="messageDiv">
         <form id="messageForm">
             <input type="text" name="messageInput" id="messageInput">
