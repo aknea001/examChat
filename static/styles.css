@@ -1,0 +1,32 @@
+* {
+    margin: 0;
+    padding: 0;
+    font-size: 100%;
+    font: inherit;
+    vertical-align: baseline;
+}
+
+#messageDiv {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+#messageForm {
+    display: flex;
+    margin-bottom: 15px;
+    width: 70%;
+}
+
+#messageInput {
+    height: 30px;
+    border-radius: 5px;
+    flex: 95;
+}
+
+#sendMessage {
+    margin-left: 2px;
+    flex: 5;
+}
