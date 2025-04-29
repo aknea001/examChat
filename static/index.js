@@ -46,7 +46,3 @@ document.getElementById("registerForm").addEventListener("submit", (e) => {
         document.getElementById("error").innerHTML = "Passwords not matching.."
     }
 })
-
-function del() {
-    console.log("hiey")
-}
