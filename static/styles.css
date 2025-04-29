@@ -49,3 +49,7 @@ body {
     margin-left: 2px;
     flex: 5;
 }
+
+#error {
+    color: red;
+}

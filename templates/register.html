@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="static/styles.css">
+    <title>Document</title>
+</head>
+<body>
+    <button onclick="del()">test</button>
+    <form id="registerForm">
+        <input type="text" name="username" id="username" placeholder="Username" required>
+        <input type="password" name="passwd" id="passwd" placeholder="Password" required>
+        <input type="password" name="passwdVerify" id="passwdVerify" placeholder="Confirm Password" required>
+        <p id="error"></p>
+        <input type="submit" value="Register">
+    </form>
+
+    <a href="/login">Login</a>
+    <a href="/">Home</a>
+
+    <script src="static/index.js"></script>
+</body>
+</html>
