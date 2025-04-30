@@ -9,6 +9,7 @@
     <form action="/login" method="POST">
         <input type="text" name="username" id="username" placeholder="Username" required>
         <input type="password" name="passwd" id="passwd" placeholder="Password" required>
+        <p id="error">{{ error }}</p>
         <input type="submit" value="Login">
     </form>
     <a href="/register">Register</a>
