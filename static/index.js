@@ -1,7 +1,7 @@
 let ws = null
 
-function establishConnection() {
-    ws = new WebSocket("ws://localhost:8000/ws")
+function establishConnection(token) {
+    ws = new WebSocket(`ws://localhost:8000/ws?token=${token}`)
 
     ws.addEventListener("open", () => {
         console.log("connected to ws..")

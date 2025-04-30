@@ -19,7 +19,16 @@ apiBaseURL = "http://localhost:3000"
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     jwt = request.session.get("jwt", "")
-    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt})
+
+    res = requests.get(f"{apiBaseURL}/message/get", headers={"groupID": "1"}) #hard coding for global chat for now CHANGE AFTER CHATS IMPLEMENTED
+
+    if res.status_code != 200:
+        error = f"{res.status_code}: {res.json()}"
+        return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "error": error})
+    
+    msgs = res.json()
+
+    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "msgs": msgs})
 
 @app.get("/login", response_class=HTMLResponse)
 async def loginPage(request: Request):
@@ -68,6 +77,13 @@ async def wsEndpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
+            print(websocket.query_params.get("token", ""))
+            res = requests.post(f"{apiBaseURL}/message/new", headers={"Authorization": f"Bearer {websocket.query_params.get('token', '')}"}, json={"msg": str(data), "groupID": "1"}) #AGAIN HARD CODING FOR GLOBAL CHAT CHANGE
+            
+            if res.status_code != 201:
+                print(f"{res.status_code}: {res.json()}")
+                continue
+
             for client in clients:
                 await client.send_text(str(data))
     except WebSocketDisconnect:
