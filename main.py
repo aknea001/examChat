@@ -18,7 +18,8 @@ apiBaseURL = "http://localhost:3000"
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    jwt = request.session.get("jwt", "")
+    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt})
 
 @app.get("/login", response_class=HTMLResponse)
 async def loginPage(request: Request):
@@ -34,6 +35,11 @@ async def login(request: Request, username: str = Form(), passwd: str = Form()):
         return RedirectResponse(request.url_for("loginPage"), status_code=303)
     
     request.session["jwt"] = res.json()["jwt"]
+    return RedirectResponse(request.url_for("index"), status_code=303)
+
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.pop("jwt", "")
     return RedirectResponse(request.url_for("index"), status_code=303)
 
 @app.get("/register", response_class=HTMLResponse)
