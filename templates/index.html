@@ -6,27 +6,47 @@
     <link rel="stylesheet" href="static/styles.css">
     <title>Document</title>
 </head>
-<body onload="establishConnection('{{ jwt }}')">
+<header>
     {% if jwt %}
         <a href="/logout">Logout</a>
     {% else %}
         <a href="/login">Login</a>
         <a href="/register">Register</a>
     {% endif %}
-    <div id="chatHistory">
-        <ul id="chats">
-            {% for msg in msgs %}
-                <li>{{ msg[0] }}</li>
-            {% endfor %}
-        </ul>
-    </div>
-    <div id="messageDiv">
-        <form id="messageForm">
-            <input type="text" name="messageInput" id="messageInput">
-            <input value="send" type="submit" id="sendMessage">
-        </form>
+</header>
+<body onload="establishConnection('{{ jwt }}', '1')"> <!-- HARD CODING GLOBAL CHAT CHANGE -->
+    <div class="main-container">
+        <div class="sidebar">
+            <h2>Chats</h2>
+            <ul>
+                <li>General</li>
+                <li>Support</li>
+                <li>Random</li>
+                <!-- Populate dynamically if needed -->
+            </ul>
+        </div>
+        <div class="chat-area">
+            <div id="chatHistory">
+                <ul id="chats">
+                    {% for msg in msgs %}
+                        <li>{{ msg[0] }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div id="messageDiv">
+                <form id="messageForm">
+                    <input type="text" name="messageInput" id="messageInput">
+                    <input value="send" type="submit" id="sendMessage">
+                </form>
+            </div>
+        </div>
     </div>
 
     <script src="static/index.js"></script>
+    <script>
+        if ("{{ error }}") {
+            alert("{{ error }}")
+        }
+    </script>
 </body>
 </html>

@@ -1,14 +1,26 @@
 let ws = null
 
-function establishConnection(token) {
-    ws = new WebSocket(`ws://localhost:8000/ws?token=${token}`)
+function establishConnection(token, groupID) {
+    document.getElementById("chats").lastElementChild.scrollIntoView({ behavior: "instant" })
+
+    ws = new WebSocket(`ws://localhost:8000/ws?token=${token}&groupID=${groupID}`)
 
     ws.addEventListener("open", () => {
         console.log("connected to ws..")
     })
 
     ws.addEventListener("message", ({ data }) => {
-        printMessage(data)
+        data = JSON.parse(data)
+        
+        if (data.event == "newMessage") {
+            printMessage(data.msg)
+            return
+        }
+
+        if (data.event == "redirect") {
+            window.location = data.location
+            return
+        }
     })
 }
 
@@ -34,4 +46,5 @@ function printMessage(msg) {
     newChat.innerHTML = msg
 
     chats.appendChild(newChat)
+    newChat.scrollIntoView({ behavior: "instant" })
 }

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response, Depends, Request
+from fastapi import FastAPI, Response, Depends, Request, Header
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from typing import Annotated
@@ -45,6 +45,30 @@ def decodeJWT(token):
         return False
     
     return identity
+
+def groupMembers(groupID: str, userID: str = None):
+    try:
+        db = mysql.connector.connect(**sqlConfig)
+        cursor = db.cursor()
+
+        query = "SELECT userID FROM groupMembers WHERE groupID = %s"
+
+        if userID:
+            query += " AND userID = %s"
+            cursor.execute(query, (groupID, userID))
+
+            data = cursor.fetchone()
+        
+        cursor.execute(query, (groupID, ))
+        data = cursor.fetchall()
+    except mysql.connector.Error as e:
+        return str(e)
+    finally:
+        if "db" in locals() and db.is_connected():
+            cursor.close()
+            db.close()
+
+    return data
 
 @app.post("/register", status_code=201)
 async def register(response: Response, body: Credentials):
@@ -101,17 +125,24 @@ async def login(response: Response, body: Credentials):
     return {"msg": "Success", "jwt": encodedJWT}
 
 @app.get("/message/get", status_code=200)
-async def getMessage(request: Request, response: Response):
-    if "groupID" not in request.headers:
-        response.status_code = 400
-        return {"msg": "Request missing headers"}
+async def getMessage(response: Response, token: Annotated[str, Depends(oauth2Scheme)], groupID: str = Header()):    
+    if groupID != "1":
+        identity = decodeJWT(token)
     
+        if not identity:
+            response.status_code = 401
+            return {"msg": "Invalid token"}
+        
+        if not groupMembers(groupID, identity):
+            response.status_code = 403
+            return {"msg": "Not authorized"}
+
     try:
         db = mysql.connector.connect(**sqlConfig)
         cursor = db.cursor()
 
         query = "SELECT msg, userID FROM chats WHERE groupID = %s"
-        cursor.execute(query, (request.headers["groupID"], ))
+        cursor.execute(query, (groupID, ))
 
         data = cursor.fetchall()
     except mysql.connector.Error as e:
@@ -124,7 +155,6 @@ async def getMessage(request: Request, response: Response):
 
     return data
     
-# 403 IF USER DOESNT HAVE ACCESS TO PARTICIAL CHAT GROUP..
 @app.post("/message/new", status_code=201)
 async def newMessage(response: Response, token: Annotated[str, Depends(oauth2Scheme)], body: Message):
     identity = decodeJWT(token)
@@ -133,8 +163,9 @@ async def newMessage(response: Response, token: Annotated[str, Depends(oauth2Sch
         response.status_code = 401
         return {"msg": "Invalid token"}
     
-    if body.groupID != 1:
-        pass #check if authorised ( ´･･)ﾉ(._.`)
+    if body.groupID != 1 and not groupMembers(body.groupID, identity):
+        response.status_code = 403
+        return {"msg": "Not authorized"}
 
     try:
         db = mysql.connector.connect(**sqlConfig)
@@ -155,3 +186,12 @@ async def newMessage(response: Response, token: Annotated[str, Depends(oauth2Sch
             db.close()
 
     return {"msg": "Success"}
+
+@app.get("/groups/members", status_code=200)
+async def getGroupMembers(groupID: str = Header()):
+    members = groupMembers(groupID)
+
+    return members
+
+if __name__ == "__main__":
+    print(groupMembers(2)[0][0])
