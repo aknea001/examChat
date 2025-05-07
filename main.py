@@ -22,16 +22,34 @@ apiBaseURL = "http://localhost:3000"
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     jwt = request.session.get("jwt", "")
+    groupID = "1"
 
-    res = requests.get(f"{apiBaseURL}/message/get", headers={"Authorization": f"Bearer {jwt}", "groupID": "1"}) #hard coding for global chat for now CHANGE AFTER CHATS IMPLEMENTED
+    res = requests.get(f"{apiBaseURL}/message/get", headers={"Authorization": f"Bearer {jwt}", "groupID": groupID})
 
     if res.status_code != 200:
         error = f"{res.status_code}: {res.json()["msg"]}"
-        return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "error": error})
+        return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "error": error})
     
     msgs = res.json()
 
-    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "msgs": msgs})
+    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs})
+
+@app.get("/group/{groupID}")
+async def chatGroups(groupID: str, request: Request):
+    if groupID == "1":
+        return RedirectResponse(request.url_for("index"), status_code=303)
+
+    jwt = request.session.get("jwt", "")
+
+    res = requests.get(f"{apiBaseURL}/message/get", headers={"Authorization": f"Bearer {jwt}", "groupID": groupID})
+
+    if res.status_code != 200:
+        error = f"{res.status_code}: {res.json()["msg"]}"
+        return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "error": error})
+    
+    msgs = res.json()
+
+    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs})
 
 @app.get("/login", response_class=HTMLResponse)
 async def loginPage(request: Request):
@@ -70,26 +88,3 @@ async def register(request: Request, username: str = Form(), passwd: str = Form(
         return RedirectResponse(request.url_for("registerPage"), status_code=303)
     
     return RedirectResponse(request.url_for("index"), status_code=303)
-
-clients = set()
-
-@app.websocket("/ws")
-async def wsEndpoint(websocket: WebSocket, token: str = Query(), groupID: str = Query()):
-    await websocket.accept()
-    clients.add(websocket)
-    
-    try:
-        while True:
-            data = await websocket.receive_text()
-            res = requests.post(f"{apiBaseURL}/message/new", headers={"Authorization": f"Bearer {token}"}, json={"msg": str(data), "groupID": groupID})
-            
-            if res.status_code != 201:
-                print(f"{res.status_code}: {res.json()}")
-                await websocket.send_json({"event": "redirect", "location": "/logout?redirect=loginPage"})
-                raise WebSocketDisconnect
-
-            for client in clients:
-                await client.send_json({"event": "newMessage", "msg": str(data)})
-
-    except WebSocketDisconnect:
-        clients.remove(websocket)

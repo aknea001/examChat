@@ -1,9 +1,13 @@
 let ws = null
 
 function establishConnection(token, groupID) {
-    document.getElementById("chats").lastElementChild.scrollIntoView({ behavior: "instant" })
+    const chats = document.getElementById("chats")
 
-    ws = new WebSocket(`ws://localhost:8000/ws?token=${token}&groupID=${groupID}`)
+    if (chats.childElementCount != 0) {
+        chats.lastElementChild.scrollIntoView({ behavior: "instant" })
+    }
+
+    ws = new WebSocket(`wss://examchat.keali.org/ws?token=${token}&groupID=${groupID}`)
 
     ws.addEventListener("open", () => {
         console.log("connected to ws..")
@@ -13,7 +17,7 @@ function establishConnection(token, groupID) {
         data = JSON.parse(data)
         
         if (data.event == "newMessage") {
-            printMessage(data.msg)
+            printMessage(data.msg, data.username)
             return
         }
 
@@ -39,11 +43,11 @@ document.getElementById("messageForm").addEventListener("submit", (e) => {
     }
 })
 
-function printMessage(msg) {
+function printMessage(msg, user) {
     const chats = document.getElementById("chats")
 
     const newChat = document.createElement("li")
-    newChat.innerHTML = msg
+    newChat.innerHTML = `<b>${user}</b><br>${msg}`
 
     chats.appendChild(newChat)
     newChat.scrollIntoView({ behavior: "instant" })

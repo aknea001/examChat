@@ -112,12 +112,7 @@ header a:hover {
 }
 
 #messageInput {
-    flex: 1;
-    padding-left: 90%;
-    border-radius: 5px;
-    border: none;
-    background-color: #40444b;
-    color: #fff;
+    width: 400%;
     font-size: 1rem;
 }
 

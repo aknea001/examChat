@@ -31,13 +31,13 @@ class Credentials(BaseModel):
 
 class Message(BaseModel):
     msg: str
-    groupID: int
+    groupID: str
 
 def createJWT(data) -> str:
     encodedJWT = jwt.encode({"userID": data, "exp": datetime.now() + timedelta(hours=1)}, os.getenv("jwtKey"), algorithm="HS256")
     return encodedJWT
 
-def decodeJWT(token):
+def decodeJWT(token) -> str | bool:
     try:
         payload = jwt.decode(token, os.getenv("jwtKey"), algorithms=["HS256"], require=["exp"], verify_exp=True)
         identity = payload.get("userID")
@@ -58,9 +58,9 @@ def groupMembers(groupID: str, userID: str = None):
             cursor.execute(query, (groupID, userID))
 
             data = cursor.fetchone()
-        
-        cursor.execute(query, (groupID, ))
-        data = cursor.fetchall()
+        else:
+            cursor.execute(query, (groupID, ))
+            data = cursor.fetchall()
     except mysql.connector.Error as e:
         return str(e)
     finally:
@@ -69,6 +69,24 @@ def groupMembers(groupID: str, userID: str = None):
             db.close()
 
     return data
+
+def tranUID(userID: str) -> str:
+    try:
+        db = mysql.connector.connect(**sqlConfig)
+        cursor = db.cursor()
+
+        query = "SELECT username FROM users WHERE id = %s"
+
+        cursor.execute(query, (userID, ))
+        data = cursor.fetchone()
+    except mysql.connector.Error as e:
+        return str(e)
+    finally:
+        if "db" in locals() and db.is_connected():
+            cursor.close()
+            db.close()
+    
+    return data[0]
 
 @app.post("/register", status_code=201)
 async def register(response: Response, body: Credentials):
@@ -141,7 +159,9 @@ async def getMessage(response: Response, token: Annotated[str, Depends(oauth2Sch
         db = mysql.connector.connect(**sqlConfig)
         cursor = db.cursor()
 
-        query = "SELECT msg, userID FROM chats WHERE groupID = %s"
+        query = "SELECT chats.msg, users.username FROM chats \
+                LEFT JOIN users ON chats.userID = users.id \
+                WHERE groupID = %s"
         cursor.execute(query, (groupID, ))
 
         data = cursor.fetchall()
@@ -163,7 +183,7 @@ async def newMessage(response: Response, token: Annotated[str, Depends(oauth2Sch
         response.status_code = 401
         return {"msg": "Invalid token"}
     
-    if body.groupID != 1 and not groupMembers(body.groupID, identity):
+    if body.groupID != "1" and not groupMembers(body.groupID, identity):
         response.status_code = 403
         return {"msg": "Not authorized"}
 
@@ -193,5 +213,10 @@ async def getGroupMembers(groupID: str = Header()):
 
     return members
 
+@app.get("/users/tranuID", status_code=200)
+async def getTranuID(userID: str = Header()):
+    username = tranUID(userID)
+    return {"username": username}
+
 if __name__ == "__main__":
-    print(groupMembers(2)[0][0])
+    print(tranUID(4))
