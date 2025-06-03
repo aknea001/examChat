@@ -32,6 +32,10 @@ class Message(BaseModel):
     msg: str
     groupID: str
 
+class Group(BaseModel):
+    users: list[int]
+    groupName: str
+
 def createJWT(data) -> str:
     encodedJWT = jwt.encode({"userID": data, "exp": datetime.now() + timedelta(hours=1)}, getenv("jwtKey"), algorithm="HS256")
     return encodedJWT
@@ -177,6 +181,43 @@ async def getGroupMembers(response: Response, request: Request, groupID: str = H
         return {"msg": str(e)}
 
     return members
+
+@app.post("/groups/new", status_code=201)
+async def newGroup(response: Response, request: Request, token: Annotated[str, Depends(oauth2Scheme)], body: Group):
+    db = request.app.state.db
+    identity = decodeJWT(token)
+
+    if not identity:
+        response.status_code = 401
+        return {"msg": "Invalid token"}
+    
+    try:
+        query = "INSERT INTO chatGroups (name) \
+                    VALUES \
+                    (%s)"
+        
+        newGroupID = db.execute(query, body.groupName)
+
+        values = []
+
+        query = "INSERT INTO groupMembers (userID, groupID) \
+                VALUES"
+        
+        query += " (%s, %s),"
+        values.extend([identity, newGroupID])
+        
+        for user in body.users:
+            query += " (%s, %s),"
+            values.extend([user, newGroupID])
+        
+        query = query[:-1]
+        
+        db.execute(query, *values)
+    except ConnectionError as e:
+        response.status_code = 500
+        return {"msg": str(e)}
+
+    return {"msg": "Success"}
 
 @app.get("/users/tranuID", status_code=200)
 async def getTranuID(response: Response, request: Request, userID: str = Header()):

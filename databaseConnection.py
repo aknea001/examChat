@@ -39,6 +39,8 @@ class Database():
                 return data
             
             connection.commit()
+
+            return cursor.lastrowid
         except mysqlError as e:
             raise ConnectionError(e)
         finally:

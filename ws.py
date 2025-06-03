@@ -64,7 +64,7 @@ async def wsEndpoint(websocket: WebSocket, token: str = Query(), groupID: str = 
             avaliableClients = []
 
             for i in members:
-                avaliableClients.append(f"user_{i[0]}_{groupID}")
+                avaliableClients.append(f"user_{i["userID"]}_{groupID}")
 
             for client in avaliableClients:
                 if client in clients:
