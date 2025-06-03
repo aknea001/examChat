@@ -2,26 +2,25 @@ from fastapi import FastAPI, Response, Depends, Request, Header
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from typing import Annotated
-import mysql.connector
+from contextlib import asynccontextmanager
 import jwt
 from datetime import timedelta, datetime
-import os
 from dotenv import load_dotenv
+from os import getenv
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+from databaseConnection import Database
 
 load_dotenv()
 
-sqlConfig = {
-    "host": os.getenv("sqlHost"),
-    "user": os.getenv("sqlUser"),
-    "password": os.getenv("sqlPasswd"),
-    "database": os.getenv("sqlDB")
-}
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.db = Database()
+    yield
 
 a2 = PasswordHasher()
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 oauth2Scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -34,116 +33,83 @@ class Message(BaseModel):
     groupID: str
 
 def createJWT(data) -> str:
-    encodedJWT = jwt.encode({"userID": data, "exp": datetime.now() + timedelta(hours=1)}, os.getenv("jwtKey"), algorithm="HS256")
+    encodedJWT = jwt.encode({"userID": data, "exp": datetime.now() + timedelta(hours=1)}, getenv("jwtKey"), algorithm="HS256")
     return encodedJWT
 
 def decodeJWT(token) -> str | bool:
     try:
-        payload = jwt.decode(token, os.getenv("jwtKey"), algorithms=["HS256"], require=["exp"], verify_exp=True)
+        payload = jwt.decode(token, getenv("jwtKey"), algorithms=["HS256"], require=["exp"], verify_exp=True)
         identity = payload.get("userID")
     except jwt.exceptions.InvalidTokenError:
         return False
     
     return identity
 
-def groupMembers(groupID: str, userID: str = None):
-    try:
-        db = mysql.connector.connect(**sqlConfig)
-        cursor = db.cursor()
+def groupMembers(db, groupID: str, userID: str = None):
+    query = "SELECT userID FROM groupMembers WHERE groupID = %s"
+    values = [groupID]
 
-        query = "SELECT userID FROM groupMembers WHERE groupID = %s"
-
-        if userID:
-            query += " AND userID = %s"
-            cursor.execute(query, (groupID, userID))
-
-            data = cursor.fetchone()
-        else:
-            cursor.execute(query, (groupID, ))
-            data = cursor.fetchall()
-    except mysql.connector.Error as e:
-        return str(e)
-    finally:
-        if "db" in locals() and db.is_connected():
-            cursor.close()
-            db.close()
+    if userID:
+        query += " AND userID = %s"
+        values.append(userID)
+    
+    data = db.execute(query, *values)
 
     return data
 
-def tranUID(userID: str) -> str:
-    try:
-        db = mysql.connector.connect(**sqlConfig)
-        cursor = db.cursor()
+def tranUID(db, userID: str) -> str:
+    query = "SELECT username FROM users WHERE id = %s"
 
-        query = "SELECT username FROM users WHERE id = %s"
-
-        cursor.execute(query, (userID, ))
-        data = cursor.fetchone()
-    except mysql.connector.Error as e:
-        return str(e)
-    finally:
-        if "db" in locals() and db.is_connected():
-            cursor.close()
-            db.close()
+    data = db.execute(query, userID)
     
-    return data[0]
+    return data["username"]
 
 @app.post("/register", status_code=201)
-async def register(response: Response, body: Credentials):
-    hashed = a2.hash(body.passwd)
-    try:
-        db = mysql.connector.connect(**sqlConfig)
-        cursor = db.cursor()
+async def register(response: Response, request: Request, body: Credentials):
+    db = request.app.state.db
 
-        query = "INSERT INTO users (username, hash) \
-                VALUES \
-                (%s, %s)"
-        
-        cursor.execute(query, (body.username, hashed))
-        db.commit()
-    except mysql.connector.Error as e:
+    hashed = a2.hash(body.passwd)
+    query = "INSERT INTO users (username, hash) \
+            VALUES \
+            (%s, %s)"
+    
+    try:
+        db.execute(query, body.username, hashed)
+    except ConnectionError as e:
         response.status_code = 500
-        return {"msg": f"Error connecting to database: {str(e)}"}
-    finally:
-        if "db" in locals() and db.is_connected():
-            cursor.close()
-            db.close()
-        
+        return {"msg": str(e)}
+
     return {"msg": "Success"}
 
 @app.post("/login", status_code=200)
-async def login(response: Response, body: Credentials):
+async def login(response: Response, request: Request, body: Credentials):
+    db = request.app.state.db
+
+    query = "SELECT hash, id FROM users WHERE username = %s"
+
     try:
-        db = mysql.connector.connect(**sqlConfig)
-        cursor = db.cursor()
-
-        query = "SELECT hash, id FROM users WHERE username = %s"
-
-        cursor.execute(query, (body.username, ))
-        data = cursor.fetchone()
-    except mysql.connector.Error as e:
+        data = db.execute(query, body.username)
+    except ConnectionError as e:
         response.status_code = 500
-        return {"msg": f"Error connecting to database: {str(e)}"}
-    finally:
-        if "db" in locals() and db.is_connected():
-            cursor.close()
-            db.close()
+        return {"msg": str(e)}
 
     if not data:
         response.status_code = 401
-        return {"msg": "Username doesnt exist.."}
+        return {"msg": "Incorrect username or password.."}
     
     try:
-        a2.verify(data[0], body.passwd)
+        a2.verify(data["hash"], body.passwd)
     except VerifyMismatchError:
         response.status_code = 401
         return {"msg": "Incorrect username or password.."}
     
-    encodedJWT = createJWT(data[1])
+    encodedJWT = createJWT(str(data["id"]))
     return {"msg": "Success", "jwt": encodedJWT}
 
 @app.get("/message/get", status_code=200)
-async def getMessage(response: Response, token: Annotated[str, Depends(oauth2Scheme)], groupID: str = Header()):    
+async def getMessage(response: Response, request: Request, token: Annotated[str, Depends(oauth2Scheme)], groupID: str = Header()):
+    db = request.app.state.db
+
     if groupID != "1":
         identity = decodeJWT(token)
     
@@ -151,71 +117,77 @@ async def getMessage(response: Response, token: Annotated[str, Depends(oauth2Sch
             response.status_code = 401
             return {"msg": "Invalid token"}
         
-        if not groupMembers(groupID, identity):
-            response.status_code = 403
-            return {"msg": "Not authorized"}
+        try:
+            if not groupMembers(db, groupID, identity):
+                response.status_code = 403
+                return {"msg": "Not authorized"}
+        except ConnectionError as e:
+            response.status_code = 500
+            return {"msg": str(e)}
 
+    query = "SELECT chats.msg, users.username FROM chats \
+            LEFT JOIN users ON chats.userID = users.id \
+            WHERE groupID = %s"
+    
     try:
-        db = mysql.connector.connect(**sqlConfig)
-        cursor = db.cursor()
-
-        query = "SELECT chats.msg, users.username FROM chats \
-                LEFT JOIN users ON chats.userID = users.id \
-                WHERE groupID = %s"
-        cursor.execute(query, (groupID, ))
-
-        data = cursor.fetchall()
-    except mysql.connector.Error as e:
+        data = db.execute(query, groupID)
+    except ConnectionError as e:
         response.status_code = 500
-        return {"msg": f"Error connecting to database: {str(e)}"}
-    finally:
-        if "db" in locals() and db.is_connected():
-            cursor.close()
-            db.close()
+        return {"msg": str(e)}
 
     return data
     
 @app.post("/message/new", status_code=201)
-async def newMessage(response: Response, token: Annotated[str, Depends(oauth2Scheme)], body: Message):
+async def newMessage(response: Response, request: Request, token: Annotated[str, Depends(oauth2Scheme)], body: Message):
+    db = request.app.state.db
     identity = decodeJWT(token)
 
     if not identity:
         response.status_code = 401
         return {"msg": "Invalid token"}
     
-    if body.groupID != "1" and not groupMembers(body.groupID, identity):
-        response.status_code = 403
-        return {"msg": "Not authorized"}
-
     try:
-        db = mysql.connector.connect(**sqlConfig)
-        cursor = db.cursor()
-
-        query = "INSERT INTO chats (msg, userID, groupID) \
-                VALUES \
-                (%s, %s, %s)"
-        
-        cursor.execute(query, (body.msg, str(identity), body.groupID))
-        db.commit()
-    except mysql.connector.Error as e:
+        if body.groupID != "1" and not groupMembers(db, body.groupID, identity):
+            response.status_code = 403
+            return {"msg": "Not authorized"}
+    except ConnectionError as e:
         response.status_code = 500
-        return {"msg": f"Error connecting to database: {str(e)}"}
-    finally:
-        if "db" in locals() and db.is_connected():
-            cursor.close()
-            db.close()
+        return {"msg": str(e)}
+
+    query = "INSERT INTO chats (msg, userID, groupID) \
+            VALUES \
+            (%s, %s, %s)"
+    
+    try:
+        db.execute(query, body.msg, str(identity), body.groupID)
+    except ConnectionError as e:
+        response.status_code = 500
+        return {"msg": str(e)}
 
     return {"msg": "Success"}
 
 @app.get("/groups/members", status_code=200)
-async def getGroupMembers(groupID: str = Header()):
-    members = groupMembers(groupID)
+async def getGroupMembers(response: Response, request: Request, groupID: str = Header()):
+    db = request.app.state.db
+
+    try:
+        members = groupMembers(db, groupID)
+    except ConnectionError as e:
+        response.status_code = 500
+        return {"msg": str(e)}
 
     return members
 
 @app.get("/users/tranuID", status_code=200)
-async def getTranuID(userID: str = Header()):
-    username = tranUID(userID)
+async def getTranuID(response: Response, request: Request, userID: str = Header()):
+    db = request.app.state.db
+
+    try:
+        username = tranUID(db, userID)
+    except ConnectionError as e:
+        response.status_code = 500
+        return {"msg": str(e)}
+    
     return {"username": username}
 
 if __name__ == "__main__":

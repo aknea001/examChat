@@ -28,7 +28,7 @@
             <div id="chatHistory">
                 <ul id="chats">
                     {% for msg in msgs %}
-                        <li><b>{{ msg[1] }}</b><br>{{ msg[0] }}</li>
+                        <li><b>{{ msg["username"] }}</b><br>{{ msg["msg"] }}</li>
                     {% endfor %}
                 </ul>
             </div>
