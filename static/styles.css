@@ -158,3 +158,8 @@ form input[type="submit"]:hover {
 p#error {
     color: #f04747;
 }
+
+#dialogDiv {
+    width: 100%;
+    height: 100%;
+}

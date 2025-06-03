@@ -15,9 +15,16 @@
     {% endif %}
 </header>
 <body onload="establishConnection('{{ jwt }}', '{{ groupID }}')">
+    <dialog id="newGroupDialog" onclick="dialog.close()">
+        <div id="dialogDiv" onclick="dontClose(event)">
+            <p>heyy</p>
+        </div>
+    </dialog>
+
     <div class="main-container">
         <div class="sidebar">
             <h2>Chats</h2>
+            <button onclick="dialog.showModal()">New</button>
             <ul>
                 <li onclick="window.location = '/'">Global</li>
                 <li>chat 2</li>

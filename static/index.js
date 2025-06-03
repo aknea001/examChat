@@ -52,3 +52,9 @@ function printMessage(msg, user) {
     chats.appendChild(newChat)
     newChat.scrollIntoView({ behavior: "instant" })
 }
+
+const dialog = document.getElementById("newGroupDialog")
+
+function dontClose(e) {
+    e.stopPropagation()
+}
