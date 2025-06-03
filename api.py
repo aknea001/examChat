@@ -33,7 +33,7 @@ class Message(BaseModel):
     groupID: str
 
 class Group(BaseModel):
-    users: list[int]
+    users: str
     groupName: str
 
 def createJWT(data) -> str:
@@ -205,8 +205,10 @@ async def newGroup(response: Response, request: Request, token: Annotated[str, D
         
         query += " (%s, %s),"
         values.extend([identity, newGroupID])
+
+        userLst = body.users.split(",")
         
-        for user in body.users:
+        for user in userLst:
             query += " (%s, %s),"
             values.extend([user, newGroupID])
         

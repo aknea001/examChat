@@ -17,7 +17,11 @@
 <body onload="establishConnection('{{ jwt }}', '{{ groupID }}')">
     <dialog id="newGroupDialog" onclick="dialog.close()">
         <div id="dialogDiv" onclick="dontClose(event)">
-            <p>heyy</p>
+            <form action="/group/new" method="POST">
+                <input placeholder="Chat Name" type="text" name="groupName">
+                <input placeholder="Members" type="text" name="users">
+                <input value="Create" type="submit">
+            </form>
         </div>
     </dialog>
 

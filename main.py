@@ -34,7 +34,7 @@ async def index(request: Request):
 
     return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs})
 
-@app.get("/group/{groupID}")
+@app.get("/group/{groupID}", response_class=HTMLResponse)
 async def chatGroups(groupID: str, request: Request):
     if groupID == "1":
         return RedirectResponse(request.url_for("index"), status_code=303)
@@ -50,6 +50,17 @@ async def chatGroups(groupID: str, request: Request):
     msgs = res.json()
 
     return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs})
+
+@app.post("/group/new")
+async def newGroup(request: Request, groupName: str = Form(), users: str = Form()):
+    jwt = request.session.get("jwt", "")
+
+    res = requests.post(f"{apiBaseURL}/groups/new", headers={"Authorization": f"Bearer {jwt}"}, json={"groupName": groupName, "users": users})
+
+    if res.status_code != 201:
+        pass # ADD ERROR HANDLING PLEASE :(
+
+    return RedirectResponse(request.url_for("index"), status_code=303)
 
 @app.get("/login", response_class=HTMLResponse)
 async def loginPage(request: Request):
