@@ -66,7 +66,7 @@ def tranUID(db, userID: str) -> str:
 
     data = db.execute(query, userID)
     
-    return data["username"]
+    return data[0]["username"]
 
 @app.post("/register", status_code=201)
 async def register(response: Response, request: Request, body: Credentials):
@@ -102,12 +102,12 @@ async def login(response: Response, request: Request, body: Credentials):
         return {"msg": "Incorrect username or password.."}
     
     try:
-        a2.verify(data["hash"], body.passwd)
+        a2.verify(data[0]["hash"], body.passwd)
     except VerifyMismatchError:
         response.status_code = 401
         return {"msg": "Incorrect username or password.."}
     
-    encodedJWT = createJWT(str(data["id"]))
+    encodedJWT = createJWT(str(data[0]["id"]))
     return {"msg": "Success", "jwt": encodedJWT}
 
 @app.get("/message/get", status_code=200)
@@ -234,6 +234,9 @@ async def newGroup(response: Response, request: Request, token: Annotated[str, D
         userLst = body.users.split(",")
         
         for user in userLst:
+            if user.strip() == "":
+                continue
+
             query += " (%s, %s),"
             values.extend([user, newGroupID])
         

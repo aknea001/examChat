@@ -94,7 +94,7 @@ async def login(request: Request, username: str = Form(), passwd: str = Form()):
         request.session["error"] = f"{res.status_code}: {res.json()['msg']}"
         return RedirectResponse(request.url_for("loginPage"), status_code=303)
     
-    request.session["jwt"] = res.json()["jwt"]
+    request.session["jwt"] = res.json()[0]["jwt"]
     return RedirectResponse(request.url_for("index"), status_code=303)
 
 @app.get("/logout")
