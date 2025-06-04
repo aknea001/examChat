@@ -32,7 +32,18 @@ async def index(request: Request):
     
     msgs = res.json()
 
-    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs})
+    if not jwt:
+        return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs})
+
+    res = requests.get(f"{apiBaseURL}/groups/user", headers={"Authorization": f"Bearer {jwt}"})
+
+    if res.status_code != 200:
+        error = f"{res.status_code}: {res.json()['msg']}"
+        return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "error": error})
+    
+    groups = res.json()
+
+    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs, "groups": groups})
 
 @app.get("/group/{groupID}", response_class=HTMLResponse)
 async def chatGroups(groupID: str, request: Request):
@@ -44,12 +55,20 @@ async def chatGroups(groupID: str, request: Request):
     res = requests.get(f"{apiBaseURL}/message/get", headers={"Authorization": f"Bearer {jwt}", "groupID": groupID})
 
     if res.status_code != 200:
-        error = f"{res.status_code}: {res.json()["msg"]}"
+        error = f"{res.status_code}: {res.json()['msg']}"
         return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "error": error})
     
     msgs = res.json()
+    
+    res = requests.get(f"{apiBaseURL}/groups/user", headers={"Authorization": f"Bearer {jwt}"})
 
-    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs})
+    if res.status_code != 200:
+        error = f"{res.status_code}: {res.json()['msg']}"
+        return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "error": error})
+    
+    groups = res.json()
+
+    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs, "groups": groups})
 
 @app.post("/group/new")
 async def newGroup(request: Request, groupName: str = Form(), users: str = Form()):

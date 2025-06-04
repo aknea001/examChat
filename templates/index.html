@@ -40,8 +40,9 @@
 
             <ul>
                 <li onclick="window.location = '/'">Global</li>
-                <li>chat 2</li>
-                <li>chat 3</li>
+                {% for group in groups %}
+                    <li onclick="window.location = '/group/{{ group['id'] }}'">{{ group["name"] }}</li>
+                {% endfor %}
             </ul>
         </div>
         <div class="chat-area">

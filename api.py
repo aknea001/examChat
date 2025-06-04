@@ -170,6 +170,31 @@ async def newMessage(response: Response, request: Request, token: Annotated[str,
 
     return {"msg": "Success"}
 
+@app.get("/groups/user", status_code=200)
+async def getGroupsbyUser(response: Response, request: Request, token: Annotated[str, Depends(oauth2Scheme)]):
+    db = request.app.state.db
+    identity = decodeJWT(token)
+
+    if not identity:
+        response.status_code = 401
+        return {"msg": "Invalid token"}
+    
+    try:
+        query = "SELECT \
+                chatGroups.id, \
+                chatGroups.name \
+                FROM chatGroups \
+                LEFT JOIN groupMembers ON \
+                chatGroups.id = groupMembers.groupID \
+                WHERE userID = %s"
+        
+        data = db.execute(query, identity)
+    except ConnectionError as e:
+        response.status_code = 500
+        return {"msg": str(e)}
+
+    return data
+
 @app.get("/groups/members", status_code=200)
 async def getGroupMembers(response: Response, request: Request, groupID: str = Header()):
     db = request.app.state.db
@@ -232,6 +257,3 @@ async def getTranuID(response: Response, request: Request, userID: str = Header(
         return {"msg": str(e)}
     
     return {"username": username}
-
-if __name__ == "__main__":
-    print(tranUID(4))
