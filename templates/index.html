@@ -18,7 +18,7 @@
     <dialog id="newGroupDialog" onclick="dialog.close()">
         <div id="dialogDiv" onclick="dontClose(event)">
             <form action="/group/new" method="POST">
-                <input placeholder="Chat Name" type="text" name="groupName">
+                <input placeholder="Chat Name" type="text" name="groupName" required>
                 <input placeholder="Members" type="text" name="users">
                 <input value="Create" type="submit">
             </form>
@@ -27,8 +27,16 @@
 
     <div class="main-container">
         <div class="sidebar">
-            <h2>Chats</h2>
-            <button onclick="dialog.showModal()">New</button>
+            <div class="chat-header">
+                <h2>Chats</h2>
+                <button class="icon-button" onclick="dialog.showModal()" aria-label="New Chat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" class="icon-plus">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                </button>
+            </div>
+
             <ul>
                 <li onclick="window.location = '/'">Global</li>
                 <li>chat 2</li>
