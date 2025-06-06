@@ -20,7 +20,13 @@
             <h2>Create new chat</h2>
             <form action="/group/new" method="POST">
                 <input placeholder="Chat Name" type="text" name="groupName" required>
-                <button type="button" onclick="changeToInput(this)">Add Member</button>
+                <button type="button" onclick="changeToInput(this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    Add Member
+                </button>
                 <div id="members"></div>
                 <input value="Create" type="submit">
             </form>

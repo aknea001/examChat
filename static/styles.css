@@ -237,3 +237,85 @@ dialog#newGroupDialog {
     margin: 0;
     font-size: 1.2rem;
 }
+
+/* Members Container */
+#members {
+    display: flex;
+    flex-direction: column;
+    margin-top: 0.75rem;
+}
+
+/* Each Member Row */
+.member {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Member Input Field */
+.member input[type="text"] {
+    flex: 1;
+    padding: 0.6rem;
+    background-color: #40444b;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.95rem;
+    height: 40px;
+}
+
+/* Delete Button Style */
+.delete-btn {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin-bottom: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px; /* match input height */
+    width: 40px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    color: #f04747;
+}
+
+.delete-btn:hover {
+    background-color: rgba(240, 71, 71, 0.15);
+}
+
+/* Delete Icon */
+.delete-icon {
+    width: 40px;
+    height: 40px;
+    stroke: currentColor;
+}
+
+button[onclick="changeToInput(this)"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%; /* Full width */
+    background-color: #2f3136;
+    color: #e3e3e3;
+    padding: 0.69rem;
+    border: 1px solid #40444b;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    gap: 0.5rem;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+button[onclick="changeToInput(this)"]:hover {
+    background-color: #40444b;
+    color: #ffffff;
+}
+
+button[onclick="changeToInput(this)"] svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+}

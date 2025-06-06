@@ -26,7 +26,13 @@ function newMember(e, divElement) {
     memberName.readOnly = true
 
     const deleteMember = document.createElement("button")
-    deleteMember.innerHTML = "<svg viewBox='0 0 24 24' class='icon'><path d='M18 6L6 18M6 6l12 12' /></svg>"
+    deleteMember.innerHTML = `
+    <svg viewBox='0 0 24 24' class='delete-icon' xmlns='http://www.w3.org/2000/svg'>
+        <path d='M18 6L6 18M6 6l12 12' stroke='currentColor stroke-width='2 stroke-linecap='round' stroke-linejoin='round'/>
+    </svg>
+    `
+    deleteMember.setAttribute("onclick", "removeMember(this)")
+    deleteMember.classList.add("delete-btn")
     deleteMember.type = "button"
     
     newMember.appendChild(memberName)
@@ -37,10 +43,19 @@ function newMember(e, divElement) {
     const addMembersBtn = document.createElement("button")
     addMembersBtn.setAttribute("onclick", "changeToInput(this)")
     addMembersBtn.type = "button"
-    addMembersBtn.innerHTML = "Add Member"
+    addMembersBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 5v14M5 12h14" />
+    </svg>
+    Add Member
+    `
 
     divElement.replaceWith(addMembersBtn)
-};
+}
+
+function removeMember(el) {
+    el.parentElement.remove()
+}
 
 function changeToInput(el) {
     const memberAddDiv = document.createElement("div")
