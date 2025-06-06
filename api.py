@@ -223,23 +223,28 @@ async def newGroup(response: Response, request: Request, token: Annotated[str, D
         
         newGroupID = db.execute(query, body.groupName)
 
-        query = "INSERT INTO groupMembers (userID, groupID) \
-                SELECT id, %s \
-                FROM ( \
-                SELECT %s AS id \
-                UNION ALL \
-                SELECT id FROM users WHERE username IN ("
-        
         values = [newGroupID, identity]
-        
-        for member in body.members:
-            if member.strip() == "":
-                continue
 
-            query += "%s,"
-            values.extend([member])
-        
-        query = query[:-1] + ")) AS allUsers"
+        if not body.members:
+            query = "INSERT INTO groupMembers (groupID, userID) \
+                    VALUES \
+                    (%s, %s)"
+        else:
+            query = "INSERT INTO groupMembers (userID, groupID) \
+                    SELECT id, %s \
+                    FROM ( \
+                    SELECT %s AS id \
+                    UNION ALL \
+                    SELECT id FROM users WHERE username IN ("
+            
+            for member in body.members:
+                if member.strip() == "":
+                    continue
+
+                query += "%s,"
+                values.extend([member])
+            
+            query = query[:-1] + ")) AS allUsers"
         
         db.execute(query, *values)
     except ConnectionError as e:

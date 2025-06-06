@@ -71,7 +71,7 @@ async def chatGroups(groupID: str, request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs, "groups": groups})
 
 @app.post("/group/new")
-async def newGroup(request: Request, groupName: str = Form(), members: list = Form()):
+async def newGroup(request: Request, groupName: str = Form(), members: list = Form([])):
     jwt = request.session.get("jwt", "")
 
     res = requests.post(f"{apiBaseURL}/groups/new", headers={"Authorization": f"Bearer {jwt}"}, json={"groupName": groupName, "members": members})
