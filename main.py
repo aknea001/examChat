@@ -74,10 +74,7 @@ async def chatGroups(groupID: str, request: Request):
 async def newGroup(request: Request, groupName: str = Form(), members: list = Form()):
     jwt = request.session.get("jwt", "")
 
-    # Gonna combine into a str for now, for testing, prolly gonna send a list but idk
-    membersStr = ",".join(members)
-
-    res = requests.post(f"{apiBaseURL}/groups/new", headers={"Authorization": f"Bearer {jwt}"}, json={"groupName": groupName, "users": membersStr})
+    res = requests.post(f"{apiBaseURL}/groups/new", headers={"Authorization": f"Bearer {jwt}"}, json={"groupName": groupName, "members": members})
 
     if res.status_code != 201:
         pass # ADD ERROR HANDLING PLEASE :(

@@ -33,7 +33,7 @@ class Message(BaseModel):
     groupID: str
 
 class Group(BaseModel):
-    users: str
+    members: list
     groupName: str
 
 def createJWT(data) -> str:
@@ -223,24 +223,23 @@ async def newGroup(response: Response, request: Request, token: Annotated[str, D
         
         newGroupID = db.execute(query, body.groupName)
 
-        values = []
-
         query = "INSERT INTO groupMembers (userID, groupID) \
-                VALUES"
+                SELECT id, %s \
+                FROM ( \
+                SELECT %s AS id \
+                UNION ALL \
+                SELECT id FROM users WHERE username IN ("
         
-        query += " (%s, %s),"
-        values.extend([identity, newGroupID])
-
-        userLst = body.users.split(",")
+        values = [newGroupID, identity]
         
-        for user in userLst:
-            if user.strip() == "":
+        for member in body.members:
+            if member.strip() == "":
                 continue
 
-            query += " (%s, %s),"
-            values.extend([user, newGroupID])
+            query += "%s,"
+            values.extend([member])
         
-        query = query[:-1]
+        query = query[:-1] + ")) AS allUsers"
         
         db.execute(query, *values)
     except ConnectionError as e:
