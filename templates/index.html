@@ -20,7 +20,8 @@
             <h2>Create new chat</h2>
             <form action="/group/new" method="POST">
                 <input placeholder="Chat Name" type="text" name="groupName" required>
-                <input placeholder="Members" type="text" name="users">
+                <button type="button" onclick="changeToInput(this)">Add Member</button>
+                <div id="members"></div>
                 <input value="Create" type="submit">
             </form>
         </div>
@@ -63,6 +64,7 @@
     </div>
 
     <script src="/static/index.js"></script>
+    <script src="/static/newChat.js"></script>
     <script>
         if ("{{ error }}") {
             alert("{{ error }}")

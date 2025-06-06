@@ -71,10 +71,13 @@ async def chatGroups(groupID: str, request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs, "groups": groups})
 
 @app.post("/group/new")
-async def newGroup(request: Request, groupName: str = Form(), users: str = Form()):
+async def newGroup(request: Request, groupName: str = Form(), members: list = Form()):
     jwt = request.session.get("jwt", "")
 
-    res = requests.post(f"{apiBaseURL}/groups/new", headers={"Authorization": f"Bearer {jwt}"}, json={"groupName": groupName, "users": users})
+    # Gonna combine into a str for now, for testing, prolly gonna send a list but idk
+    membersStr = ",".join(members)
+
+    res = requests.post(f"{apiBaseURL}/groups/new", headers={"Authorization": f"Bearer {jwt}"}, json={"groupName": groupName, "users": membersStr})
 
     if res.status_code != 201:
         pass # ADD ERROR HANDLING PLEASE :(
@@ -94,7 +97,7 @@ async def login(request: Request, username: str = Form(), passwd: str = Form()):
         request.session["error"] = f"{res.status_code}: {res.json()['msg']}"
         return RedirectResponse(request.url_for("loginPage"), status_code=303)
     
-    request.session["jwt"] = res.json()[0]["jwt"]
+    request.session["jwt"] = res.json()["jwt"]
     return RedirectResponse(request.url_for("index"), status_code=303)
 
 @app.get("/logout")
