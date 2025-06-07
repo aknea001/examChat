@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 from os import getenv
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+import redis
+from secrets import token_hex
 from databaseConnection import Database
 
 load_dotenv()
@@ -16,6 +18,7 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.db = Database()
+    app.state.redisConn = redis.Redis(host=getenv("redisHost"), port=getenv("redisPort"), db=0)
     yield
 
 a2 = PasswordHasher()
@@ -35,6 +38,13 @@ class Message(BaseModel):
 class Group(BaseModel):
     members: list
     groupName: str
+
+class JoinGroup(BaseModel):
+    joinCode: str
+
+class GenerateJoinCode(BaseModel):
+    groupName: str
+    groupID: str
 
 def createJWT(data) -> str:
     encodedJWT = jwt.encode({"userID": data, "exp": datetime.now() + timedelta(hours=1)}, getenv("jwtKey"), algorithm="HS256")
@@ -252,6 +262,71 @@ async def newGroup(response: Response, request: Request, token: Annotated[str, D
         return {"msg": str(e)}
 
     return {"msg": "Success"}
+
+@app.post("/groups/join", status_code=201)
+async def joinGroup(request: Request, response: Response, token: Annotated[str, Depends(oauth2Scheme)], body: JoinGroup):
+    db = request.app.state.db
+    r = request.app.state.redisConn
+
+    identity = decodeJWT(token)
+
+    if not identity:
+        response.status_code = 401
+        return {"msg": "Invalid token"}
+
+    if not r.exists(body.joinCode):
+        response.status_code = 401
+        return {"msg": "Invalid code"}
+    
+    groupID = r.get(body.joinCode)
+
+    query = "INSERT INTO groupMembers (userID, groupID) \
+            VALUES \
+            (%s, %s)"
+    
+    try:
+        db.execute(query, identity, groupID)
+    except ConnectionError as e:
+        response.status_code = 500
+        return {"msg": str(e)}
+    
+    return {"msg": "Success"}
+
+@app.post("/groups/join/generate", status_code=201)
+async def generateJoinCode(request: Request, response: Response, token: Annotated[str, Depends(oauth2Scheme)], body: GenerateJoinCode):
+    db = request.app.state.db
+    r = request.app.state.redisConn
+
+    identity = decodeJWT(token)
+
+    if not identity:
+        response.status_code = 401
+        return {"msg": "Invalid token"}
+    
+    query = "SELECT id FROM groupMembers WHERE userID = %s AND groupID = %s"
+
+    try:
+        data = db.execute(query, identity, body.groupID)
+    except ConnectionError as e:
+        response.status_code = 500
+        return {"msg": str(e)}
+    
+    if not data:
+        response.status_code = 403
+        return {"msg": "Not authorized"}
+    
+    newJoinCode = f"{body.groupName}_{token_hex(16)}"
+
+    while True:
+        if r.exists(newJoinCode):
+            newJoinCode = f"{body.groupName}_{token_hex(16)}"
+            continue
+
+        break
+
+    r.set(newJoinCode, body.groupID, ex=3600)
+
+    return {"msg": "Success", "joinCode": newJoinCode}
 
 @app.get("/users/tranuID", status_code=200)
 async def getTranuID(response: Response, request: Request, userID: str = Header()):

@@ -30,6 +30,7 @@ PyJWT==2.10.1
 python-dotenv==1.1.0
 python-multipart==0.0.20
 PyYAML==6.0.2
+redis==6.2.0
 requests==2.32.3
 rich==14.0.0
 rich-toolkit==0.14.4
