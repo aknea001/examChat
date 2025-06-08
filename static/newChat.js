@@ -72,3 +72,13 @@ function changeToInput(el) {
     el.replaceWith(memberAddDiv)
     memberAddInput.focus()
 }
+
+function toggleCheck(e) {
+    const checkbox = document.getElementById("genLink")
+
+    if (e.target == checkbox) {
+        return
+    }
+
+    checkbox.checked = !checkbox.checked
+}

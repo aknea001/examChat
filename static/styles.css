@@ -319,3 +319,31 @@ button[onclick="changeToInput(this)"] svg {
     height: 18px;
     stroke: currentColor;
 }
+
+/* Join Link Toggle Container */
+.join-link-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #2f3136;
+    padding: 0.25rem 1rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+/* Text */
+.join-link-toggle p {
+    margin: 0;
+    color: #e3e3e3;
+}
+
+/* Checkbox */
+.join-link-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 15px;
+    accent-color: #7289da;
+    cursor: pointer;
+}
