@@ -27,6 +27,10 @@
                     </svg>
                     Add Member
                 </button>
+                <div>
+                    <p>Generate join link</p>
+                    <input type="checkbox" name="genLink">
+                </div>
                 <div id="members"></div>
                 <input value="Create" type="submit">
             </form>
@@ -74,6 +78,12 @@
     <script>
         if ("{{ error }}") {
             alert("{{ error }}")
+        }
+
+        if ("{{ joinCode }}") {
+            const joinCode = "{{ joinCode }}"
+            navigator.clipboard.writeText(`https://examchat.keali.org/group/join?joinCode=${joinCode}`)
+            alert("Copied join link to clipboard...")
         }
     </script>
 </body>

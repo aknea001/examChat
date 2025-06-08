@@ -261,7 +261,7 @@ async def newGroup(response: Response, request: Request, token: Annotated[str, D
         response.status_code = 500
         return {"msg": str(e)}
 
-    return {"msg": "Success"}
+    return {"msg": "Success", "groupID": newGroupID}
 
 @app.post("/groups/join", status_code=201)
 async def joinGroup(request: Request, response: Response, token: Annotated[str, Depends(oauth2Scheme)], body: JoinGroup):

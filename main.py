@@ -46,7 +46,7 @@ async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs, "groups": groups})
 
 @app.post("/group/new")
-async def newGroup(request: Request, groupName: str = Form(), members: list = Form([])):
+async def newGroup(request: Request, groupName: str = Form(), members: list = Form([]), genLink: bool = Form(False)):
     jwt = request.session.get("jwt", "")
 
     res = requests.post(f"{apiBaseURL}/groups/new", headers={"Authorization": f"Bearer {jwt}"}, json={"groupName": groupName, "members": members})
@@ -54,7 +54,19 @@ async def newGroup(request: Request, groupName: str = Form(), members: list = Fo
     if res.status_code != 201:
         pass # ADD ERROR HANDLING PLEASE :(
 
-    return RedirectResponse(request.url_for("index"), status_code=303)
+    newGroupID = res.json()["groupID"]
+
+    if not genLink:
+        return RedirectResponse(f"/group/{newGroupID}", status_code=303)
+    
+    res = requests.post(f"{apiBaseURL}/groups/join/generate", headers={"Authorization": f"Bearer {jwt}"}, json={"groupName": groupName, "groupID": str(newGroupID)})
+
+    if res.status_code != 201:
+        return {"status": res.status_code, "msg": res.json()} # i dont feel like doin proper error handling 🥸
+
+    joinCode = res.json()["joinCode"]
+
+    return RedirectResponse(f"/group/{newGroupID}?joinCode={joinCode}", status_code=303)
 
 @app.get("/group/join")
 async def joinGroup(request: Request, joinCode: str = Query(None)):
@@ -77,7 +89,7 @@ async def joinGroup(request: Request, joinCode: str = Query(None)):
     return RedirectResponse(f"/group/{res.json()["groupID"]}", status_code=303)
 
 @app.get("/group/{groupID}", response_class=HTMLResponse)
-async def chatGroups(groupID: str, request: Request):
+async def chatGroups(groupID: str, request: Request, joinCode: str = Query("")):
     if groupID == "1":
         return RedirectResponse(request.url_for("index"), status_code=303)
 
@@ -99,7 +111,7 @@ async def chatGroups(groupID: str, request: Request):
     
     groups = res.json()
 
-    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs, "groups": groups})
+    return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs, "groups": groups, "joinCode": joinCode})
 
 @app.get("/login", response_class=HTMLResponse)
 async def loginPage(request: Request, redirect: str = Query("/")):
