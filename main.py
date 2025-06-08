@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -45,6 +45,37 @@ async def index(request: Request):
 
     return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs, "groups": groups})
 
+@app.post("/group/new")
+async def newGroup(request: Request, groupName: str = Form(), members: list = Form([])):
+    jwt = request.session.get("jwt", "")
+
+    res = requests.post(f"{apiBaseURL}/groups/new", headers={"Authorization": f"Bearer {jwt}"}, json={"groupName": groupName, "members": members})
+
+    if res.status_code != 201:
+        pass # ADD ERROR HANDLING PLEASE :(
+
+    return RedirectResponse(request.url_for("index"), status_code=303)
+
+@app.get("/group/join")
+async def joinGroup(request: Request, joinCode: str = Query(None)):
+    if not joinCode:
+        return RedirectResponse(request.url_for("index"), status_code=303)
+    
+    jwt = request.session.get("jwt", None)
+
+    if not jwt:
+        return RedirectResponse(f"/login?redirect=/group/join?joinCode={joinCode}", status_code=303)
+    
+    res = requests.post(f"{apiBaseURL}/groups/join", headers={"Authorization": f"Bearer {jwt}"}, json={"joinCode": joinCode})
+
+    if res.status_code == 401:
+        return RedirectResponse(request.url_for("loginPage", redirect=f"/group/join?joinCode={joinCode}"), status_code=303)
+    elif res.status_code == 403:
+        # Add better error handling, maybe a sep html page
+        return "Invalid Join Code"
+    
+    return RedirectResponse(f"/group/{res.json()["groupID"]}", status_code=303)
+
 @app.get("/group/{groupID}", response_class=HTMLResponse)
 async def chatGroups(groupID: str, request: Request):
     if groupID == "1":
@@ -70,32 +101,21 @@ async def chatGroups(groupID: str, request: Request):
 
     return templates.TemplateResponse("index.html", {"request": request, "jwt": jwt, "groupID": groupID, "msgs": msgs, "groups": groups})
 
-@app.post("/group/new")
-async def newGroup(request: Request, groupName: str = Form(), members: list = Form([])):
-    jwt = request.session.get("jwt", "")
-
-    res = requests.post(f"{apiBaseURL}/groups/new", headers={"Authorization": f"Bearer {jwt}"}, json={"groupName": groupName, "members": members})
-
-    if res.status_code != 201:
-        pass # ADD ERROR HANDLING PLEASE :(
-
-    return RedirectResponse(request.url_for("index"), status_code=303)
-
 @app.get("/login", response_class=HTMLResponse)
-async def loginPage(request: Request):
+async def loginPage(request: Request, redirect: str = Query("/")):
     error = request.session.pop("error", "")
-    return templates.TemplateResponse("login.html", {"request": request, "error": error})
+    return templates.TemplateResponse("login.html", {"request": request, "error": error, "redirect": redirect})
 
 @app.post("/login")
-async def login(request: Request, username: str = Form(), passwd: str = Form()):
+async def login(request: Request, username: str = Form(), passwd: str = Form(), redirect: str = Query("/")):
     res = requests.post(f"{apiBaseURL}/login", json={"username": username, "passwd": passwd})
 
     if res.status_code != 200:
         request.session["error"] = f"{res.status_code}: {res.json()['msg']}"
-        return RedirectResponse(request.url_for("loginPage"), status_code=303)
+        return RedirectResponse(request.url_for("loginPage", redirect=redirect), status_code=303)
     
     request.session["jwt"] = res.json()["jwt"]
-    return RedirectResponse(request.url_for("index"), status_code=303)
+    return RedirectResponse(redirect, status_code=303)
 
 @app.get("/logout")
 async def logout(request: Request):

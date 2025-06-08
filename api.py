@@ -275,7 +275,7 @@ async def joinGroup(request: Request, response: Response, token: Annotated[str, 
         return {"msg": "Invalid token"}
 
     if not r.exists(body.joinCode):
-        response.status_code = 401
+        response.status_code = 403
         return {"msg": "Invalid code"}
     
     groupID = r.get(body.joinCode)
@@ -290,7 +290,7 @@ async def joinGroup(request: Request, response: Response, token: Annotated[str, 
         response.status_code = 500
         return {"msg": str(e)}
     
-    return {"msg": "Success"}
+    return {"msg": "Success", "groupID": groupID}
 
 @app.post("/groups/join/generate", status_code=201)
 async def generateJoinCode(request: Request, response: Response, token: Annotated[str, Depends(oauth2Scheme)], body: GenerateJoinCode):
