@@ -315,11 +315,12 @@ async def generateJoinCode(request: Request, response: Response, token: Annotate
         response.status_code = 403
         return {"msg": "Not authorized"}
     
-    newJoinCode = f"{body.groupName}_{token_hex(16)}"
+    groupName = body.groupName.replace(" ", "-")
+    newJoinCode = f"{groupName}_{token_hex(16)}"
 
     while True:
         if r.exists(newJoinCode):
-            newJoinCode = f"{body.groupName}_{token_hex(16)}"
+            newJoinCode = f"{groupName}_{token_hex(16)}"
             continue
 
         break
