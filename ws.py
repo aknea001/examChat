@@ -49,7 +49,7 @@ async def wsEndpoint(websocket: WebSocket, token: str = Query(), groupID: str = 
                 raise WebSocketDisconnect
             
             res = requests.get(f"{apiBaseURL}/users/tranuID", headers={"userID": identity})
-            username = res.json()[0]["username"]
+            username = res.json()["username"]
 
             if groupID == "1":
                 for client in clients:
